@@ -39,8 +39,10 @@ coverage/
 .claude/
 
 # Project documentation (excluded from version control)
-DLT_ADAPTER_INVESTIGATION_REPORT.md
-IMPLEMENTATION_SUMMARY.md
-Project-Brief-DOME-Interchain-Event-Distributor.md
-NPM_WARNINGS_FIXED.md
-DEVELOPMENT_GUIDE.md
+docs/DLT_ADAPTER_INVESTIGATION_REPORT.md
+docs/IMPLEMENTATION_SUMMARY.md
+docs/Project-Brief-DOME-Interchain-Event-Distributor.md
+docs/DOME_Interchain_Event_Distributor.md
+docs/NPM_WARNINGS_FIXED.md
+docs/DEVELOPMENT_GUIDE.md
+docs/*.png
