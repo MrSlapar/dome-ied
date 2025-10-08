@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dome-ied-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ied-network
+    restart: unless-stopped
+
+  # DOME IED
+  ied:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dome-ied
+    ports:
+      - "8080:8080"
+    environment:
+      # Server
+      PORT: 8080
+      NODE_ENV: production
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Adapters
+      HASHNET_ADAPTER_URL: http://hashnet-adapter:8081
+      ALASTRIA_ADAPTER_URL: http://alastria-adapter:8082
+
+      # IED
+      IED_BASE_URL: http://ied:8080
+
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+
+      # Timeouts
+      ADAPTER_TIMEOUT_MS: 10000
+      NOTIFICATION_TIMEOUT_MS: 10000
+    depends_on:
+      redis:
+        condition: service_healthy
+      hashnet-adapter:
+        condition: service_healthy
+      alastria-adapter:
+        condition: service_healthy
+    networks:
+      - ied-network
+    restart: unless-stopped
+
+  # HashNET DLT Adapter
+  hashnet-adapter:
+    build:
+      context: ../hashnet-adapter
+      dockerfile: Dockerfile
+    container_name: dome-hashnet-adapter
+    ports:
+      - "8081:8080"
+    environment:
+      DEBUG: "*"
+      PORT: 8080
+      # Add other HashNET-specific env vars here
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ied-network
+    restart: unless-stopped
+
+  # Alastria DLT Adapter
+  alastria-adapter:
+    build:
+      context: ../alastria-adapter
+      dockerfile: Dockerfile
+    container_name: dome-alastria-adapter
+    ports:
+      - "8082:8080"
+    environment:
+      DEBUG: "*"
+      PORT: 8080
+      # Add other Alastria-specific env vars here
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ied-network
+    restart: unless-stopped
+
+networks:
+  ied-network:
+    driver: bridge
+
+volumes:
+  redis-data:
