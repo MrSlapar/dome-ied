@@ -214,17 +214,4 @@ Redis SET structures track:
 - `network:<name>` - Events published to each network
 - `notifiedEvents` - Events already sent to subscribers
 
-## License
 
-Apache License 2.0
-
-## Authors
-
-DOME Project Team
-
-## Documentation
-
-See `/docs` for detailed documentation:
-- [Investigation Report](../DLT_ADAPTER_INVESTIGATION_REPORT.md)
-- [Architecture Decision Records](./docs/adr/)
-- [API Documentation](./docs/api.md)
