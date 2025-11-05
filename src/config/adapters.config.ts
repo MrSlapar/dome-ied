@@ -66,9 +66,9 @@ function loadAdapterConfigs(): AdapterConfig[] {
       name: alastriaName,
       url: alastriaUrl,
       healthEndpoint: '/health',
-      publishEndpoint: '/api/v1/publishEvent',
-      subscribeEndpoint: '/api/v1/subscribe',
-      eventsEndpoint: '/api/v1/events',
+      publishEndpoint: '/api/v2/publishEvent',
+      subscribeEndpoint: '/api/v2/subscribe',
+      eventsEndpoint: '/api/v2/events',
     });
   } catch (error) {
     console.warn('Alastria adapter not configured:', error);

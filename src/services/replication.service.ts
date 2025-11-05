@@ -160,6 +160,13 @@ export async function setupInternalSubscriptions(): Promise<void> {
       ? eventTypesEnv.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
       : ['*'];  // v1.5.2+ wildcard: subscribe to ALL events
 
+    // Metadata for subscription (environment tags: sbx, prd, dev)
+    // Alastria adapter v2 requires at least one metadata value
+    const metadataEnv = process.env.INTERNAL_SUBSCRIPTION_METADATA;
+    const metadata = metadataEnv
+      ? metadataEnv.split(',').map((m) => m.trim()).filter((m) => m.length > 0)
+      : ['sbx'];  // Default to sandbox environment
+
     // The notification endpoint includes the network name so we can identify source
     const notificationEndpoint = `${iedBaseUrl}/internal/eventNotification/${network}`;
 
@@ -173,7 +180,7 @@ export async function setupInternalSubscriptions(): Promise<void> {
       const success = await client.subscribe({
         eventTypes: domeEventTypes,
         notificationEndpoint,
-        metadata: {},  // v1.5.0+ metadata filtering (empty = no filtering)
+        metadata,  // v1.5.0+ metadata filtering (Alastria v2 requires at least one value)
       });
 
       if (success) {
