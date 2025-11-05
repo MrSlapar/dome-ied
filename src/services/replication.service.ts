@@ -52,8 +52,46 @@ export async function handleIncomingEvent(
       eventType: event.eventType,
     });
 
-    // Replicate to missing networks
-    await replicateToNetworks(event, missingNetworks);
+    // Wait before replicating to prevent duplicates from network propagation delays
+    const delayMs = envConfig.replication.delayMs;
+    logInfo(`Waiting ${delayMs}ms before replicating to prevent duplicates`, {
+      operation: 'replication:delay',
+      globalId,
+      sourceNetwork,
+      delayMs,
+      missingNetworks,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    // Check again if still missing (might have arrived during delay period)
+    const stillMissingNetworks = await getMissingNetworks(globalId);
+
+    if (stillMissingNetworks.length === 0) {
+      logInfo('Event arrived on all networks during delay, skipping replication', {
+        operation: 'replication:skip',
+        globalId,
+        sourceNetwork,
+        delayMs,
+      });
+      return;
+    }
+
+    // Log if some networks received the event during delay
+    if (stillMissingNetworks.length < missingNetworks.length) {
+      const arrivedNetworks = missingNetworks.filter(
+        (n) => !stillMissingNetworks.includes(n)
+      );
+      logInfo('Some networks received event during delay', {
+        operation: 'replication:partial-arrival',
+        globalId,
+        arrivedNetworks,
+        stillMissing: stillMissingNetworks,
+      });
+    }
+
+    // Replicate to networks that are still missing the event
+    await replicateToNetworks(event, stillMissingNetworks);
   } catch (error) {
     logError('Failed to handle incoming event', error, {
       sourceNetwork,

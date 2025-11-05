@@ -53,6 +53,11 @@ export interface EnvConfig {
     adapterTimeoutMs: number;
     notificationTimeoutMs: number;
   };
+
+  // Replication configuration
+  replication: {
+    delayMs: number;
+  };
 }
 
 /**
@@ -123,6 +128,10 @@ export const envConfig: EnvConfig = {
   timeout: {
     adapterTimeoutMs: getEnvInt('ADAPTER_TIMEOUT_MS', 5000),
     notificationTimeoutMs: getEnvInt('NOTIFICATION_TIMEOUT_MS', 5000),
+  },
+
+  replication: {
+    delayMs: getEnvInt('REPLICATION_DELAY_MS', 15000),
   },
 };
 

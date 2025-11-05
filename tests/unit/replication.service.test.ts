@@ -16,6 +16,7 @@ import {
   getMissingNetworks,
 } from '../../src/services/cache.service';
 import { DomeEvent } from '../../src/models/event.model';
+import { envConfig } from '../../src/config/env.config';
 
 // Mock dependencies
 jest.mock('../../src/services/adapter.client');
@@ -36,14 +37,25 @@ describe('Replication Service', () => {
     previousEntityHash: '0x0000',
   };
 
+  const originalDelay = envConfig.replication.delayMs;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock delay to 100ms for faster tests (applies to all tests)
+    (envConfig.replication as any).delayMs = 100;
+  });
+
+  afterEach(() => {
+    // Restore original delay
+    (envConfig.replication as any).delayMs = originalDelay;
   });
 
   describe('handleIncomingEvent', () => {
     it('should mark event on source network and replicate to missing networks', async () => {
       mockMarkEventPublished.mockResolvedValue();
-      mockGetMissingNetworks.mockResolvedValue(['alastria']);
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria']) // Before delay
+        .mockResolvedValueOnce(['alastria']); // After delay (still missing)
 
       const mockAlastriaAdapter = {
         getName: jest.fn(() => 'alastria'),
@@ -60,12 +72,13 @@ describe('Replication Service', () => {
       // Should mark event on source network
       expect(mockMarkEventPublished).toHaveBeenCalledWith('hashnet', '0xrepl123');
 
-      // Should check for missing networks
+      // Should check for missing networks twice (before and after delay)
+      expect(mockGetMissingNetworks).toHaveBeenCalledTimes(2);
       expect(mockGetMissingNetworks).toHaveBeenCalledWith('0xrepl123');
 
       // Should replicate to missing network
       expect(mockAlastriaAdapter.publishEvent).toHaveBeenCalled();
-    });
+    }, 10000);
 
     it('should skip replication when event is on all networks', async () => {
       mockMarkEventPublished.mockResolvedValue();
@@ -322,7 +335,9 @@ describe('Replication Service', () => {
       };
 
       mockMarkEventPublished.mockResolvedValue();
-      mockGetMissingNetworks.mockResolvedValue(['alastria']);
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria']) // Before delay
+        .mockResolvedValueOnce(['alastria']); // After delay (still missing)
 
       const mockAdapter = {
         publishEvent: jest.fn().mockResolvedValue({ success: true }),
@@ -335,6 +350,110 @@ describe('Replication Service', () => {
       expect(mockAdapter.publishEvent).toHaveBeenCalledWith(
         expect.objectContaining({ relevantMetadata: [] })
       );
-    });
+    }, 10000);
+  });
+
+  describe('Replication Delay', () => {
+    it('should wait before replicating to prevent duplicates', async () => {
+      mockMarkEventPublished.mockResolvedValue();
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria'])
+        .mockResolvedValueOnce(['alastria']); // Still missing after delay
+
+      const mockAdapter = {
+        publishEvent: jest.fn().mockResolvedValue({ success: true }),
+      };
+      mockAdapterPool.get.mockReturnValue(mockAdapter as any);
+
+      const startTime = Date.now();
+      await handleIncomingEvent(testEvent, 'hashnet');
+      const elapsed = Date.now() - startTime;
+
+      // Should have waited at least the delay time
+      expect(elapsed).toBeGreaterThanOrEqual(100);
+
+      // Should check twice - before and after delay
+      expect(mockGetMissingNetworks).toHaveBeenCalledTimes(2);
+
+      // Should replicate
+      expect(mockAdapter.publishEvent).toHaveBeenCalled();
+    }, 10000);
+
+    it('should skip replication if event arrives during delay', async () => {
+      mockMarkEventPublished.mockResolvedValue();
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria']) // Initially missing
+        .mockResolvedValueOnce([]); // Arrived during delay
+
+      const mockAdapter = {
+        publishEvent: jest.fn().mockResolvedValue({ success: true }),
+      };
+      mockAdapterPool.get.mockReturnValue(mockAdapter as any);
+
+      await handleIncomingEvent(testEvent, 'hashnet');
+
+      // Should check twice - before and after delay
+      expect(mockGetMissingNetworks).toHaveBeenCalledTimes(2);
+
+      // Should NOT replicate since event arrived during delay
+      expect(mockAdapter.publishEvent).not.toHaveBeenCalled();
+    }, 10000);
+
+    it('should replicate only to networks still missing after delay', async () => {
+      mockMarkEventPublished.mockResolvedValue();
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria', 'fabric']) // Initially missing 2 networks
+        .mockResolvedValueOnce(['alastria']); // Only 1 still missing after delay
+
+      const mockAlastriaAdapter = {
+        getName: jest.fn(() => 'alastria'),
+        publishEvent: jest.fn().mockResolvedValue({ success: true }),
+      };
+
+      const mockFabricAdapter = {
+        getName: jest.fn(() => 'fabric'),
+        publishEvent: jest.fn().mockResolvedValue({ success: true }),
+      };
+
+      mockAdapterPool.get.mockImplementation((name: string) => {
+        if (name === 'alastria') return mockAlastriaAdapter as any;
+        if (name === 'fabric') return mockFabricAdapter as any;
+        return undefined;
+      });
+
+      await handleIncomingEvent(testEvent, 'hashnet');
+
+      // Should check twice - before and after delay
+      expect(mockGetMissingNetworks).toHaveBeenCalledTimes(2);
+
+      // Should only replicate to alastria (fabric arrived during delay)
+      expect(mockAlastriaAdapter.publishEvent).toHaveBeenCalled();
+      expect(mockFabricAdapter.publishEvent).not.toHaveBeenCalled();
+    }, 10000);
+
+    it('should use configured delay from environment', async () => {
+      // Set custom delay
+      (envConfig.replication as any).delayMs = 200;
+
+      mockMarkEventPublished.mockResolvedValue();
+      mockGetMissingNetworks
+        .mockResolvedValueOnce(['alastria']) // Before delay - event missing
+        .mockResolvedValueOnce([]); // After delay - event arrived
+
+      const mockAdapter = {
+        publishEvent: jest.fn().mockResolvedValue({ success: true }),
+      };
+      mockAdapterPool.get.mockReturnValue(mockAdapter as any);
+
+      const startTime = Date.now();
+      await handleIncomingEvent(testEvent, 'hashnet');
+      const elapsed = Date.now() - startTime;
+
+      // Should have waited at least 200ms
+      expect(elapsed).toBeGreaterThanOrEqual(200);
+
+      // Should NOT replicate since event arrived during delay
+      expect(mockAdapter.publishEvent).not.toHaveBeenCalled();
+    }, 10000);
   });
 });
