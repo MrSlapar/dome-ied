@@ -6,6 +6,12 @@
 
 /**
  * DOME Event structure as received from DLT Adapters
+ *
+ * Supports both Alastria adapter versions:
+ * - v1.3.0: Uses 'origin' field (mapped to publisherAddress by IED)
+ * - v1.5.0+: Uses 'publisherAddress' and 'authorAddress' fields
+ *
+ * The optional fields ensure backward compatibility between versions.
  */
 export interface DomeEvent {
   id: number;
@@ -15,7 +21,13 @@ export interface DomeEvent {
   entityIdHash: string;
   previousEntityHash: string;
   relevantMetadata: string[];
-  publisherAddress?: string;
+
+  // v1.5.0+ fields (optional for backward compatibility)
+  publisherAddress?: string;  // Organization identifier (ISS) that published the event
+  authorAddress?: string;      // Ethereum address of the account that signed the transaction
+
+  // v1.3.0 legacy field (deprecated in v1.5.0+)
+  origin?: string;             // Legacy field, mapped to publisherAddress
 }
 
 /**

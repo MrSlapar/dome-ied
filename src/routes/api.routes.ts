@@ -11,7 +11,7 @@ import {
   handleEventNotification,
   handleDesmosEventNotification,
 } from '../controllers/subscribe.controller';
-import { healthCheck, stats } from '../controllers/health.controller';
+import { healthCheck, stats, adapterSubscriptions } from '../controllers/health.controller';
 import { validatePublishEvent, validateSubscribe } from '../middleware/validation.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
 
@@ -26,6 +26,11 @@ router.get('/health', asyncHandler(healthCheck));
  * Statistics endpoint
  */
 router.get('/stats', asyncHandler(stats));
+
+/**
+ * Adapter subscriptions endpoint (v1.5.1+)
+ */
+router.get('/stats/subscriptions', asyncHandler(adapterSubscriptions));
 
 /**
  * Public API endpoints (for Desmos)

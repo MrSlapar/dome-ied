@@ -150,21 +150,15 @@ export async function setupInternalSubscriptions(): Promise<void> {
   const subscriptionPromises = adapters.map(async (client) => {
     const network = client.getName();
 
-    // Get event types from environment or use defaults
-    // Note: DLT Adapters don't support empty array, so we must provide event types
+    // Alastria v1.5.2+ supports wildcard subscribe to ALL events: ["*"]
+    // This simplifies internal subscriptions - no need to list all event types
+    //
+    // For backward compatibility with v1.3.0, you can still use specific event types
+    // by setting INTERNAL_SUBSCRIPTION_EVENT_TYPES environment variable.
     const eventTypesEnv = process.env.INTERNAL_SUBSCRIPTION_EVENT_TYPES;
     const domeEventTypes = eventTypesEnv
       ? eventTypesEnv.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
-      : [
-          'ProductOffering',
-          'ProductAdded',
-          'ProductUpdated',
-          'ProductDeleted',
-          'ServiceOffering',
-          'ServiceAdded',
-          'ServiceUpdated',
-          'ServiceDeleted',
-        ];
+      : ['*'];  // v1.5.2+ wildcard: subscribe to ALL events
 
     // The notification endpoint includes the network name so we can identify source
     const notificationEndpoint = `${iedBaseUrl}/internal/eventNotification/${network}`;
@@ -179,6 +173,7 @@ export async function setupInternalSubscriptions(): Promise<void> {
       const success = await client.subscribe({
         eventTypes: domeEventTypes,
         notificationEndpoint,
+        metadata: {},  // v1.5.0+ metadata filtering (empty = no filtering)
       });
 
       if (success) {

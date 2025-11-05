@@ -152,6 +152,10 @@ export class AdapterClient {
 
   /**
    * Subscribe to events
+   *
+   * For Alastria v1.5.0+:
+   * - Supports metadata filtering (e.g., {"env": "prd"})
+   * - Supports wildcard eventTypes: ["*"] (v1.5.2+)
    */
   async subscribe(request: AdapterSubscriptionRequest): Promise<boolean> {
     const operation = 'subscribe';
@@ -160,6 +164,7 @@ export class AdapterClient {
       logAdapterCall(this.adapter.name, this.adapter.subscribeEndpoint, 'POST', {
         eventTypes: request.eventTypes,
         notificationEndpoint: request.notificationEndpoint,
+        metadata: request.metadata,  // v1.5.0+ metadata filtering
       });
 
       await retryCall(
@@ -175,8 +180,39 @@ export class AdapterClient {
       logError(`Subscribe failed for ${this.adapter.name}`, error, {
         adapter: this.adapter.name,
         eventTypes: request.eventTypes,
+        metadata: request.metadata,
       });
       return false;
+    }
+  }
+
+  /**
+   * Get active subscriptions (Alastria v1.5.1+)
+   *
+   * Returns a list of currently active event subscriptions on this adapter.
+   * This endpoint is available in Alastria adapter v1.5.1+.
+   */
+  async getActiveSubscriptions(): Promise<any[]> {
+    const operation = 'getActiveSubscriptions';
+
+    try {
+      logAdapterCall(this.adapter.name, this.adapter.subscribeEndpoint, 'GET');
+
+      const subscriptions = await retryCall(
+        async () => {
+          const response = await this.axiosInstance.get(this.adapter.subscribeEndpoint);
+          return response.data;
+        },
+        this.adapter.name,
+        operation
+      );
+
+      return subscriptions;
+    } catch (error) {
+      logError(`Get active subscriptions failed for ${this.adapter.name}`, error, {
+        adapter: this.adapter.name,
+      });
+      return [];
     }
   }
 
