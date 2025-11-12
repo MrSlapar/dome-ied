@@ -6,11 +6,13 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 import { envConfig } from './config/env.config';
 import { adapters } from './config/adapters.config';
 import { connectRedis, disconnectRedis } from './config/redis.config';
 import { adapterPool } from './services/adapter.client';
 import { setupInternalSubscriptions } from './services/replication.service';
+import { swaggerSpec } from './config/openapi.config';
 import apiRoutes from './routes/api.routes';
 import { requestLogger } from './middleware/logging.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
@@ -22,8 +24,19 @@ import { logInfo, logError } from './utils/logger';
 function createApp(): Application {
   const app = express();
 
-  // Security middleware
-  app.use(helmet());
+  // Security middleware (with CSP relaxation for Swagger UI)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+    })
+  );
 
   // CORS middleware
   app.use(cors());
@@ -39,6 +52,12 @@ function createApp(): Application {
 
   // API routes
   app.use('/', apiRoutes);
+
+  // OpenAPI / Swagger UI Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'DOME IED API Documentation',
+    customfavIcon: '/favicon.ico',
+  }));
 
   // 404 handler (must be after all routes)
   app.use(notFoundHandler);
@@ -135,6 +154,7 @@ async function start(): Promise<void> {
       logInfo(`Adapters: ${adapters.map((a) => a.name).join(', ')}`);
       logInfo(`Health check: http://localhost:${port}/health`);
       logInfo(`Stats: http://localhost:${port}/stats`);
+      logInfo(`API Docs: http://localhost:${port}/api-docs`);
       logInfo('========================================');
     });
 

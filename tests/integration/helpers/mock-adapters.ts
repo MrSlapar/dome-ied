@@ -25,6 +25,8 @@ export function createMockAdapter(behavior: MockAdapterBehavior): Partial<Adapte
   return {
     getName: jest.fn(() => behavior.name),
 
+    getUrl: jest.fn(() => `http://localhost:808${behavior.name === 'hashnet' ? '1' : '2'}`),
+
     publishEvent: jest.fn(async (_request: AdapterPublishRequest): Promise<PublishEventResult> => {
       if (behavior.publishDelay) {
         await new Promise((resolve) => setTimeout(resolve, behavior.publishDelay));
@@ -66,6 +68,14 @@ export function setupMockAdapterPool(behaviors: MockAdapterBehavior[]): void {
   jest.spyOn(adapterPool, 'get').mockImplementation((name: string) => {
     const adapter = mockAdapters.find((a) => a.getName!() === name);
     return adapter as AdapterClient | undefined;
+  });
+
+  jest.spyOn(adapterPool, 'healthCheckAll').mockImplementation(async () => {
+    const results: Record<string, boolean> = {};
+    for (const behavior of behaviors) {
+      results[behavior.name] = behavior.healthCheckSuccess;
+    }
+    return results;
   });
 }
 

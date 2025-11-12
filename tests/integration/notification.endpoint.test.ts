@@ -70,8 +70,8 @@ describe('POST /internal/eventNotification/:network', () => {
         .send(validEvent)
         .expect(200);
 
-      // Wait a bit for async processing
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for async processing (longer when all tests run)
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Verify event is marked on hashnet
       const redis = getTestRedisClient();
