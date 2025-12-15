@@ -1,0 +1,88 @@
+DOME Interchain Event Distributor has been deployed!
+
+Release Name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+📦 Deployed Components:
+  ✓ IED Service ({{ .Values.ied.replicaCount }} replica(s))
+  {{- if .Values.redis.enabled }}
+  ✓ Redis Cache
+  {{- end }}
+  {{- if .Values.adapters.enabled }}
+  ✓ HashNET Adapter
+  ✓ Alastria Adapter
+  {{- end }}
+
+{{- if .Values.ingress.enabled }}
+🌐 External Access:
+  Your IED is accessible at:
+  {{- range .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+
+  API Documentation (Swagger):
+  {{- range .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}/api-docs
+  {{- end }}
+{{- else }}
+🔧 Local Access (kubectl port-forward):
+
+  To access the IED locally, run:
+
+    export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "dome-ied.name" . }},app.kubernetes.io/component=ied" -o jsonpath="{.items[0].metadata.name}")
+    kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:8080
+
+  Then visit:
+    - Health Check: http://localhost:8080/health
+    - Statistics:   http://localhost:8080/stats
+    - API Docs:     http://localhost:8080/api-docs
+{{- end }}
+
+📊 Health Check:
+
+  Check IED status:
+    kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/component=ied"
+
+  View IED logs:
+    kubectl --namespace {{ .Release.Namespace }} logs -l "app.kubernetes.io/component=ied" -f
+
+  Check health endpoint:
+    {{- if .Values.ingress.enabled }}
+    curl {{ (index .Values.ingress.hosts 0).host }}/health
+    {{- else }}
+    kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "dome-ied.fullname" . }} 8080:8080
+    curl http://localhost:8080/health
+    {{- end }}
+
+{{- if .Values.redis.enabled }}
+🔴 Redis:
+
+  Redis service: {{ include "dome-ied.redis.serviceName" . }}:6379
+
+  Connect to Redis CLI:
+    kubectl --namespace {{ .Release.Namespace }} exec -it {{ include "dome-ied.redis.fullname" . }}-0 -- redis-cli{{- if .Values.redis.auth.enabled }} -a $REDIS_PASSWORD{{- end }}
+{{- end }}
+
+{{- if not .Values.adapters.enabled }}
+⚠️  Adapter Configuration:
+
+  You have disabled built-in adapters. Make sure to configure external adapter URLs:
+  {{- if not .Values.adapters.hashnet.url }}
+  ⚠️  HashNET adapter URL not set (set adapters.hashnet.url)
+  {{- else }}
+  ✓ HashNET: {{ .Values.adapters.hashnet.url }}
+  {{- end }}
+  {{- if not .Values.adapters.alastria.url }}
+  ⚠️  Alastria adapter URL not set (set adapters.alastria.url)
+  {{- else }}
+  ✓ Alastria: {{ .Values.adapters.alastria.url }}
+  {{- end }}
+{{- end }}
+
+📚 Documentation:
+
+  For more information, visit:
+  - Chart README: https://github.com/dome-project/interchain-event-distributor
+  - API Documentation: Access /api-docs endpoint for Swagger UI
+
+🎉 Happy event distributing!

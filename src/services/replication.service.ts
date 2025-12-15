@@ -52,8 +52,46 @@ export async function handleIncomingEvent(
       eventType: event.eventType,
     });
 
-    // Replicate to missing networks
-    await replicateToNetworks(event, missingNetworks);
+    // Wait before replicating to prevent duplicates from network propagation delays
+    const delayMs = envConfig.replication.delayMs;
+    logInfo(`Waiting ${delayMs}ms before replicating to prevent duplicates`, {
+      operation: 'replication:delay',
+      globalId,
+      sourceNetwork,
+      delayMs,
+      missingNetworks,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    // Check again if still missing (might have arrived during delay period)
+    const stillMissingNetworks = await getMissingNetworks(globalId);
+
+    if (stillMissingNetworks.length === 0) {
+      logInfo('Event arrived on all networks during delay, skipping replication', {
+        operation: 'replication:skip',
+        globalId,
+        sourceNetwork,
+        delayMs,
+      });
+      return;
+    }
+
+    // Log if some networks received the event during delay
+    if (stillMissingNetworks.length < missingNetworks.length) {
+      const arrivedNetworks = missingNetworks.filter(
+        (n) => !stillMissingNetworks.includes(n)
+      );
+      logInfo('Some networks received event during delay', {
+        operation: 'replication:partial-arrival',
+        globalId,
+        arrivedNetworks,
+        stillMissing: stillMissingNetworks,
+      });
+    }
+
+    // Replicate to networks that are still missing the event
+    await replicateToNetworks(event, stillMissingNetworks);
   } catch (error) {
     logError('Failed to handle incoming event', error, {
       sourceNetwork,
@@ -150,21 +188,22 @@ export async function setupInternalSubscriptions(): Promise<void> {
   const subscriptionPromises = adapters.map(async (client) => {
     const network = client.getName();
 
-    // Get event types from environment or use defaults
-    // Note: DLT Adapters don't support empty array, so we must provide event types
+    // Alastria v1.5.2+ supports wildcard subscribe to ALL events: ["*"]
+    // This simplifies internal subscriptions - no need to list all event types
+    //
+    // For backward compatibility with v1.3.0, you can still use specific event types
+    // by setting INTERNAL_SUBSCRIPTION_EVENT_TYPES environment variable.
     const eventTypesEnv = process.env.INTERNAL_SUBSCRIPTION_EVENT_TYPES;
     const domeEventTypes = eventTypesEnv
       ? eventTypesEnv.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
-      : [
-          'ProductOffering',
-          'ProductAdded',
-          'ProductUpdated',
-          'ProductDeleted',
-          'ServiceOffering',
-          'ServiceAdded',
-          'ServiceUpdated',
-          'ServiceDeleted',
-        ];
+      : ['*'];  // v1.5.2+ wildcard: subscribe to ALL events
+
+    // Metadata for subscription (environment tags: sbx, prd, dev)
+    // Alastria adapter v2 requires at least one metadata value
+    const metadataEnv = process.env.INTERNAL_SUBSCRIPTION_METADATA;
+    const metadata = metadataEnv
+      ? metadataEnv.split(',').map((m) => m.trim()).filter((m) => m.length > 0)
+      : ['sbx'];  // Default to sandbox environment
 
     // The notification endpoint includes the network name so we can identify source
     const notificationEndpoint = `${iedBaseUrl}/internal/eventNotification/${network}`;
@@ -179,6 +218,7 @@ export async function setupInternalSubscriptions(): Promise<void> {
       const success = await client.subscribe({
         eventTypes: domeEventTypes,
         notificationEndpoint,
+        metadata,  // v1.5.0+ metadata filtering (Alastria v2 requires at least one value)
       });
 
       if (success) {

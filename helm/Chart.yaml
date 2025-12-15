@@ -1,0 +1,19 @@
+apiVersion: v2
+name: dome-ied
+description: DOME Interchain Event Distributor - Blockchain event replication middleware
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - dome
+  - blockchain
+  - event-distributor
+  - middleware
+  - dlt
+home: https://github.com/dome-project/interchain-event-distributor
+sources:
+  - https://github.com/dome-project/interchain-event-distributor
+maintainers:
+  - name: DOME Project
+    email: support@dome-marketplace.eu
+icon: https://dome-marketplace.eu/logo.png

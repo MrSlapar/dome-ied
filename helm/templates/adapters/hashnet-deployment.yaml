@@ -1,0 +1,43 @@
+{{- if .Values.adapters.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dome-ied.hashnet.fullname" . }}
+  labels:
+    {{- include "dome-ied.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hashnet-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dome-ied.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: hashnet-adapter
+  template:
+    metadata:
+      labels:
+        {{- include "dome-ied.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: hashnet-adapter
+    spec:
+      containers:
+        - name: hashnet-adapter
+          image: {{ .Values.adapters.hashnet.image.repository }}:{{ .Values.adapters.hashnet.image.tag }}
+          imagePullPolicy: {{ .Values.adapters.hashnet.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.adapters.hashnet.resources | nindent 12 }}
+{{- end }}

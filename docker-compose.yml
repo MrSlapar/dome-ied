@@ -35,10 +35,16 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_DB: 0
 
-      # Adapters
+      # Adapters - URLs
       HASHNET_ADAPTER_URL: http://hashnet-adapter:8081
+      HASHNET_ADAPTER_NAME: hashnet
+      HASHNET_CHAIN_ID: "1"
+
       ALASTRIA_ADAPTER_URL: http://alastria-adapter:8082
+      ALASTRIA_ADAPTER_NAME: alastria
+      ALASTRIA_CHAIN_ID: "2"
 
       # IED
       IED_BASE_URL: http://ied:8080
@@ -50,6 +56,16 @@ services:
       # Timeouts
       ADAPTER_TIMEOUT_MS: 10000
       NOTIFICATION_TIMEOUT_MS: 10000
+      HEALTH_CHECK_INTERVAL_MS: 30000
+
+      # Retry Configuration
+      MAX_RETRY_ATTEMPTS: 3
+      RETRY_DELAY_MS: 1000
+
+      # Replication Configuration
+      REPLICATION_DELAY_MS: 15000
+      INTERNAL_SUBSCRIPTION_EVENT_TYPES: "*"
+      INTERNAL_SUBSCRIPTION_METADATA: sbx
     depends_on:
       redis:
         condition: service_healthy

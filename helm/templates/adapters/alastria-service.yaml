@@ -1,0 +1,19 @@
+{{- if .Values.adapters.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dome-ied.alastria.fullname" . }}
+  labels:
+    {{- include "dome-ied.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alastria-adapter
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dome-ied.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: alastria-adapter
+{{- end }}

@@ -34,6 +34,7 @@ export function addNetworkParameter(event: DomeEvent, network: string): DomeEven
  * @returns Event without network parameter
  */
 export function stripNetworkParameter(event: DomeEvent | DomeEventWithNetwork): DomeEvent {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { network, ...eventWithoutNetwork } = event as any;
   return eventWithoutNetwork;
 }

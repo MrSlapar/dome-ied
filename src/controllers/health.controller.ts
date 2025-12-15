@@ -87,3 +87,73 @@ export async function stats(_req: Request, res: Response): Promise<void> {
     });
   }
 }
+
+/**
+ * GET /stats/subscriptions
+ *
+ * Get active subscriptions from all adapters (Alastria v1.5.1+ feature).
+ *
+ * This endpoint queries each adapter for their active subscriptions,
+ * which is useful for debugging and monitoring replication setup.
+ */
+export async function adapterSubscriptions(_req: Request, res: Response): Promise<void> {
+  try {
+    const adapters = adapterPool.getAll();
+
+    // Get active subscriptions from each adapter in parallel
+    const subscriptionPromises = adapters.map(async (client) => {
+      try {
+        const subscriptions = await client.getActiveSubscriptions();
+        return {
+          adapter: client.getName(),
+          url: client.getUrl(),
+          subscriptions,
+          count: Array.isArray(subscriptions) ? subscriptions.length : 0,
+          error: null,
+        };
+      } catch (error) {
+        logError(`Failed to get subscriptions from ${client.getName()}`, error);
+        return {
+          adapter: client.getName(),
+          url: client.getUrl(),
+          subscriptions: [],
+          count: 0,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(subscriptionPromises);
+
+    const adapterSubscriptions = results.map((result) =>
+      result.status === 'fulfilled' ? result.value : {
+        adapter: 'unknown',
+        url: 'unknown',
+        subscriptions: [],
+        count: 0,
+        error: 'Promise rejected',
+      }
+    );
+
+    const totalSubscriptions = adapterSubscriptions.reduce(
+      (sum, adapter) => sum + adapter.count,
+      0
+    );
+
+    const response = {
+      timestamp: new Date().toISOString(),
+      totalAdapters: adapters.length,
+      totalSubscriptions,
+      adapters: adapterSubscriptions,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    logError('Adapter subscriptions endpoint error', error);
+
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to retrieve adapter subscriptions',
+    });
+  }
+}

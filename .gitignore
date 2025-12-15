@@ -8,9 +8,7 @@ dist/
 build/
 
 # Environment variables
-.env
-.env.local
-.env.*.local
+
 
 # Logs
 logs/
@@ -38,12 +36,14 @@ coverage/
 # Claude Code files
 .claude/
 
-# Project documentation (excluded from version control)
+# Local documentation (internal working documents - not for repo)
 docs/DLT_ADAPTER_INVESTIGATION_REPORT.md
 docs/IMPLEMENTATION_SUMMARY.md
 docs/Project-Brief-DOME-Interchain-Event-Distributor.md
-docs/DOME_Interchain_Event_Distributor.md
+docs/ALASTRIA_INTEGRATION_SUCCESS.md
+docs/DOME_IED_STATUS_*.md
+docs/HASH_FORMAT_GUIDE.md
 docs/NPM_WARNINGS_FIXED.md
 docs/DEVELOPMENT_GUIDE.md
 docs/*.png
-docs/
+PRODUCTION_ROADMAP.md

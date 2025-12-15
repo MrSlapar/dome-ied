@@ -15,10 +15,15 @@ export interface SubscriptionRequest {
 
 /**
  * Adapter subscription configuration
+ *
+ * For Alastria adapter v1.5.0+ (API v2):
+ * - metadata: Optional filter for event metadata as array (e.g., ["prd", "sbx"])
+ * - eventTypes: Can use wildcard ["*"] to subscribe to all events (v1.5.2+)
  */
 export interface AdapterSubscriptionRequest {
   eventTypes: string[];
   notificationEndpoint: string;
+  metadata?: string[];  // v1.5.0+ optional metadata filtering (API v2 uses array)
 }
 
 /**
