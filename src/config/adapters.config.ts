@@ -10,6 +10,7 @@
 export interface AdapterConfig {
   name: string;
   url: string;
+  chainId: string;  // Blockchain chain identifier for Redis keys (publishedEvents:<chainId>)
   healthEndpoint: string;
   publishEndpoint: string;
   subscribeEndpoint: string;
@@ -37,6 +38,22 @@ function getAdapterName(prefix: string, defaultName: string): string {
 }
 
 /**
+ * Get adapter chain ID from environment
+ * Chain ID is used for Redis keys: publishedEvents:<chainId>
+ */
+function getAdapterChainId(name: string): string {
+  const envKey = `${name.toUpperCase()}_CHAIN_ID`;
+  const chainId = process.env[envKey];
+  if (!chainId) {
+    // Fallback to network name if chain ID not configured
+    // This maintains backward compatibility but logs a warning
+    console.warn(`Chain ID not configured for ${name} (${envKey}), using name as fallback`);
+    return name;
+  }
+  return chainId;
+}
+
+/**
  * Load adapter configurations from environment variables
  */
 function loadAdapterConfigs(): AdapterConfig[] {
@@ -46,9 +63,11 @@ function loadAdapterConfigs(): AdapterConfig[] {
   try {
     const hashnetName = getAdapterName('HASHNET', 'hashnet');
     const hashnetUrl = getAdapterUrl(hashnetName);
+    const hashnetChainId = getAdapterChainId(hashnetName);
     configs.push({
       name: hashnetName,
       url: hashnetUrl,
+      chainId: hashnetChainId,
       healthEndpoint: '/health',
       publishEndpoint: '/api/v1/publishEvent',
       subscribeEndpoint: '/api/v1/subscribe',
@@ -62,9 +81,11 @@ function loadAdapterConfigs(): AdapterConfig[] {
   try {
     const alastriaName = getAdapterName('ALASTRIA', 'alastria');
     const alastriaUrl = getAdapterUrl(alastriaName);
+    const alastriaChainId = getAdapterChainId(alastriaName);
     configs.push({
       name: alastriaName,
       url: alastriaUrl,
+      chainId: alastriaChainId,
       healthEndpoint: '/health',
       publishEndpoint: '/api/v2/publishEvent',
       subscribeEndpoint: '/api/v2/subscribe',
@@ -86,9 +107,11 @@ function loadAdapterConfigs(): AdapterConfig[] {
 
       try {
         const url = getAdapterUrl(name);
+        const chainId = getAdapterChainId(name);
         configs.push({
           name,
           url,
+          chainId,
           healthEndpoint: '/health',
           publishEndpoint: '/api/v1/publishEvent',
           subscribeEndpoint: '/api/v1/subscribe',
@@ -133,4 +156,39 @@ export function getAdapterNames(): string[] {
  */
 export function getAdapterCount(): number {
   return adapters.length;
+}
+
+/**
+ * Get chain ID for a network by name
+ * Used by cache.service.ts for Redis keys
+ *
+ * @param networkName - Network name (e.g., "hashnet", "alastria")
+ * @returns Chain ID for Redis keys (e.g., "1", "2")
+ * @throws Error if network not found
+ */
+export function getChainIdByNetwork(networkName: string): string {
+  const adapter = adapters.find((a) => a.name === networkName);
+  if (!adapter) {
+    throw new Error(`Adapter not found for network: ${networkName}`);
+  }
+  return adapter.chainId;
+}
+
+/**
+ * Get network name by chain ID
+ * Reverse lookup for debugging/logging
+ *
+ * @param chainId - Chain ID
+ * @returns Network name or undefined if not found
+ */
+export function getNetworkByChainId(chainId: string): string | undefined {
+  const adapter = adapters.find((a) => a.chainId === chainId);
+  return adapter?.name;
+}
+
+/**
+ * Get all chain IDs
+ */
+export function getChainIds(): string[] {
+  return adapters.map((adapter) => adapter.chainId);
 }

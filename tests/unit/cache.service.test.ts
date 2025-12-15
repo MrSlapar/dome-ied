@@ -29,8 +29,18 @@ jest.mock('../../src/config/redis.config', () => ({
 }));
 
 // Mock adapters config to prevent module loading errors
+// Chain IDs: hashnet=1, alastria=2 (per specification)
 jest.mock('../../src/config/adapters.config', () => ({
   getAdapterNames: jest.fn(() => ['hashnet', 'alastria']),
+  getChainIdByNetwork: jest.fn((network: string) => {
+    const chainIds: Record<string, string> = {
+      'hashnet': '1',
+      'alastria': '2',
+      'fabric-test-network': 'fabric-test-network', // Fallback for unknown networks
+    };
+    return chainIds[network] || network;
+  }),
+  getChainIds: jest.fn(() => ['1', '2']),
 }));
 
 describe('Cache Service', () => {
@@ -40,23 +50,25 @@ describe('Cache Service', () => {
   });
 
   describe('markEventPublished', () => {
-    it('should add event to network set in Redis', async () => {
+    it('should add event to network set in Redis using chainId key', async () => {
       mockRedisClient.sAdd.mockResolvedValue(1);
 
       await markEventPublished('hashnet', '0xtest123');
 
-      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('network:hashnet', '0xtest123');
+      // hashnet chainId = 1, so key should be publishedEvents:1
+      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('publishedEvents:1', '0xtest123');
       expect(mockRedisClient.sAdd).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle multiple networks independently', async () => {
+    it('should handle multiple networks independently with different chainIds', async () => {
       mockRedisClient.sAdd.mockResolvedValue(1);
 
       await markEventPublished('hashnet', '0xevent1');
       await markEventPublished('alastria', '0xevent1');
 
-      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('network:hashnet', '0xevent1');
-      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('network:alastria', '0xevent1');
+      // hashnet chainId = 1, alastria chainId = 2
+      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('publishedEvents:1', '0xevent1');
+      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('publishedEvents:2', '0xevent1');
       expect(mockRedisClient.sAdd).toHaveBeenCalledTimes(2);
     });
 
@@ -76,7 +88,8 @@ describe('Cache Service', () => {
       const result = await isEventOnNetwork('alastria', '0xexisting123');
 
       expect(result).toBe(true);
-      expect(mockRedisClient.sIsMember).toHaveBeenCalledWith('network:alastria', '0xexisting123');
+      // alastria chainId = 2
+      expect(mockRedisClient.sIsMember).toHaveBeenCalledWith('publishedEvents:2', '0xexisting123');
     });
 
     it('should return false when event does not exist on network', async () => {
@@ -85,7 +98,8 @@ describe('Cache Service', () => {
       const result = await isEventOnNetwork('hashnet', '0xmissing456');
 
       expect(result).toBe(false);
-      expect(mockRedisClient.sIsMember).toHaveBeenCalledWith('network:hashnet', '0xmissing456');
+      // hashnet chainId = 1
+      expect(mockRedisClient.sIsMember).toHaveBeenCalledWith('publishedEvents:1', '0xmissing456');
     });
 
     it('should check different networks independently', async () => {
@@ -245,7 +259,8 @@ describe('Cache Service', () => {
 
       await markEventPublished('hashnet', '0xABCDEF123456!@#$');
 
-      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('network:hashnet', '0xABCDEF123456!@#$');
+      // hashnet chainId = 1
+      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('publishedEvents:1', '0xABCDEF123456!@#$');
     });
 
     it('should handle very long global IDs', async () => {
@@ -254,16 +269,18 @@ describe('Cache Service', () => {
 
       await markEventPublished('alastria', longId);
 
-      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('network:alastria', longId);
+      // alastria chainId = 2
+      expect(mockRedisClient.sAdd).toHaveBeenCalledWith('publishedEvents:2', longId);
     });
 
-    it('should handle network names with special characters', async () => {
+    it('should handle network names with special characters (uses name as fallback chainId)', async () => {
       mockRedisClient.sIsMember.mockResolvedValue(true);
 
       await isEventOnNetwork('fabric-test-network', '0xtest123');
 
+      // fabric-test-network uses name as fallback chainId
       expect(mockRedisClient.sIsMember).toHaveBeenCalledWith(
-        'network:fabric-test-network',
+        'publishedEvents:fabric-test-network',
         '0xtest123'
       );
     });

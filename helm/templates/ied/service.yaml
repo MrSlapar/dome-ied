@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dome-ied.fullname" . }}
+  labels:
+    {{- include "dome-ied.ied.labels" . | nindent 4 }}
+  {{- with .Values.ied.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.ied.service.type }}
+  ports:
+    - port: {{ .Values.ied.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dome-ied.ied.selectorLabels" . | nindent 4 }}

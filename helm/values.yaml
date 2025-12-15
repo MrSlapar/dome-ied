@@ -1,0 +1,193 @@
+# Default values for dome-ied Helm chart
+# This is a YAML-formatted file optimized for development/testing environments.
+
+# IED (Interchain Event Distributor) Configuration
+ied:
+  # Number of IED replicas
+  replicaCount: 1
+
+  # IED container image
+  image:
+    repository: dome-ied
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion
+    tag: "latest"
+
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+
+  # Pod annotations
+  podAnnotations: {}
+
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 1001
+    runAsNonRoot: true
+    runAsUser: 1001
+
+  # Container security context
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: false
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  # Resource requests and limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity rules
+  affinity: {}
+
+  # Environment variables
+  env:
+    nodeEnv: development
+    logLevel: info
+    logFormat: pretty
+    adapterTimeoutMs: 5000
+    notificationTimeoutMs: 5000
+    healthCheckIntervalMs: 30000
+    maxRetryAttempts: 3
+    retryDelayMs: 1000
+    replicationDelayMs: 15000
+    internalSubscriptionEventTypes: "*"
+    internalSubscriptionMetadata: "sbx"
+
+# Redis Configuration
+redis:
+  # Enable Redis deployment
+  enabled: true
+
+  # Redis container image
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+
+  # Redis database number
+  database: 0
+
+  # Redis authentication
+  auth:
+    enabled: false
+    password: ""
+    # Use existing secret for Redis password
+    existingSecret: ""
+
+  # Persistence configuration
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    # accessModes:
+    #   - ReadWriteOnce
+
+  # Resource requests and limits
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity rules
+  affinity: {}
+
+# Ingress Configuration
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: ied.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # tls:
+  #   - secretName: ied-tls
+  #     hosts:
+  #       - ied.example.com
+
+# DLT Adapters (Optional)
+adapters:
+  # Set to true to deploy adapters in the same chart
+  # Set to false to use external adapter URLs
+  enabled: false
+
+  # HashNET Adapter Configuration
+  hashnet:
+    # External URL (used only when adapters.enabled=false)
+    # Example: http://hashnet-adapter.external.svc.cluster.local:8080
+    url: ""
+    # Chain ID for Redis keys (publishedEvents:<chainId>)
+    chainId: "1"
+
+    # Image configuration (used only when adapters.enabled=true)
+    image:
+      repository: hashnet-adapter
+      tag: latest
+      pullPolicy: IfNotPresent
+
+    # Resources (used only when adapters.enabled=true)
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # Alastria Adapter Configuration
+  alastria:
+    # External URL (used only when adapters.enabled=false)
+    # Example: http://alastria-adapter.external.svc.cluster.local:8080
+    url: ""
+    # Chain ID for Redis keys (publishedEvents:<chainId>)
+    chainId: "2"
+
+    # Image configuration (used only when adapters.enabled=true)
+    image:
+      repository: alastria-adapter
+      tag: latest
+      pullPolicy: IfNotPresent
+
+    # Resources (used only when adapters.enabled=true)
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

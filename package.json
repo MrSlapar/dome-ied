@@ -12,6 +12,8 @@
     "test:integration": "jest --testPathPattern=tests/integration",
     "test:e2e": "jest --testPathPattern=tests/e2e",
     "test:coverage": "jest --coverage",
+    "test:15s": "jest replication-delay-15s.test.ts --testTimeout=30000",
+    "test:production-timing": "jest replication-delay-15s.test.ts --testTimeout=30000 --verbose",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },

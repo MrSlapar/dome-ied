@@ -2,15 +2,22 @@
   "preset": "ts-jest",
   "testEnvironment": "node",
   "roots": ["<rootDir>/tests"],
+  "setupFiles": ["<rootDir>/tests/jest.setup.ts"],
   "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
   "transform": {
     "^.+\\.ts$": "ts-jest"
   },
+  "maxWorkers": 1,
   "collectCoverageFrom": [
     "src/**/*.ts",
     "!src/**/*.d.ts",
     "!src/app.ts"
   ],
+  "coveragePathIgnorePatterns": [
+    "/node_modules/",
+    "/tests/"
+  ],
+  "coverageProvider": "v8",
   "coverageDirectory": "coverage",
   "coverageReporters": ["text", "lcov", "html"],
   "moduleFileExtensions": ["ts", "js", "json"],

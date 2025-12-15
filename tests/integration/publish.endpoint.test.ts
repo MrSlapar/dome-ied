@@ -70,8 +70,8 @@ describe('POST /api/v1/publishEvent', () => {
 
       // Verify Redis cache
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       expect(hashnetEvents).toContain('0xintegration123');
       expect(alastriaEvents).toContain('0xintegration123');
@@ -108,8 +108,8 @@ describe('POST /api/v1/publishEvent', () => {
 
       // Verify Redis cache - only Alastria should have the event
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       expect(hashnetEvents).not.toContain('0xintegration123');
       expect(alastriaEvents).toContain('0xintegration123');
@@ -140,8 +140,8 @@ describe('POST /api/v1/publishEvent', () => {
 
       // Verify Redis cache is empty
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       expect(hashnetEvents).toHaveLength(0);
       expect(alastriaEvents).toHaveLength(0);
@@ -255,7 +255,7 @@ describe('POST /api/v1/publishEvent', () => {
 
       // Verify all events are in cache
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
 
       expect(hashnetEvents).toContain('0xevent1');
       expect(hashnetEvents).toContain('0xevent2');

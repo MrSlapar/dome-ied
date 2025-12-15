@@ -1,0 +1,112 @@
+# Production overrides for dome-ied Helm chart
+# Use with: helm install dome-ied ./helm -f helm/values-production.yaml
+
+# IED Configuration (Production)
+ied:
+  # Increase replicas for HA
+  replicaCount: 2
+
+  image:
+    repository: your-registry.io/dome-ied
+    pullPolicy: Always
+    tag: "1.0.0"  # Use specific version tag
+
+  # Resource limits for production
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Anti-affinity to spread pods across nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - dome-ied
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - ied
+            topologyKey: kubernetes.io/hostname
+
+  # Production environment variables
+  env:
+    nodeEnv: production
+    logLevel: info
+    logFormat: json  # JSON logs for log aggregation
+    adapterTimeoutMs: 10000  # Higher timeout for production
+    notificationTimeoutMs: 10000
+    healthCheckIntervalMs: 30000
+    maxRetryAttempts: 3
+    retryDelayMs: 1000
+    replicationDelayMs: 15000
+    internalSubscriptionEventTypes: "*"
+    internalSubscriptionMetadata: "prd"  # Production environment
+
+# Redis Configuration (Production)
+redis:
+  enabled: true
+
+  # Redis authentication enabled
+  auth:
+    enabled: true
+    password: "CHANGE_ME_REDIS_PASSWORD"  # Should be overridden or use existingSecret
+
+  # Larger persistence for production
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: "fast-ssd"  # Use fast storage class
+
+  # Increased resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Ingress Configuration (Production)
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: ied.dome-marketplace.eu
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ied-tls
+      hosts:
+        - ied.dome-marketplace.eu
+
+# DLT Adapters (Production)
+adapters:
+  # Adapters deployed separately in production
+  enabled: false
+
+  hashnet:
+    # External HashNET adapter URL
+    url: "http://hashnet-adapter.dome-adapters.svc.cluster.local:8080"
+    chainId: "1"
+
+  alastria:
+    # External Alastria adapter URL
+    url: "http://alastria-adapter.dome-adapters.svc.cluster.local:8080"
+    chainId: "2"

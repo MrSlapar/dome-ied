@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dome-ied.fullname" . }}
+  labels:
+    {{- include "dome-ied.labels" . | nindent 4 }}
+data:
+  # Server Configuration
+  PORT: "8080"
+  NODE_ENV: {{ .Values.ied.env.nodeEnv | quote }}
+
+  # Redis Configuration
+  REDIS_HOST: {{ include "dome-ied.redis.serviceName" . | quote }}
+  REDIS_PORT: "6379"
+  REDIS_DB: {{ .Values.redis.database | quote }}
+
+  # DLT Adapter Configuration
+  {{- if .Values.adapters.enabled }}
+  # HashNET Adapter (deployed in cluster)
+  HASHNET_ADAPTER_URL: {{ printf "http://%s:8080" (include "dome-ied.hashnet.fullname" .) | quote }}
+  HASHNET_ADAPTER_NAME: "hashnet"
+  HASHNET_CHAIN_ID: {{ .Values.adapters.hashnet.chainId | quote }}
+
+  # Alastria Adapter (deployed in cluster)
+  ALASTRIA_ADAPTER_URL: {{ printf "http://%s:8080" (include "dome-ied.alastria.fullname" .) | quote }}
+  ALASTRIA_ADAPTER_NAME: "alastria"
+  ALASTRIA_CHAIN_ID: {{ .Values.adapters.alastria.chainId | quote }}
+  {{- else }}
+  # HashNET Adapter (external URL)
+  {{- if .Values.adapters.hashnet.url }}
+  HASHNET_ADAPTER_URL: {{ .Values.adapters.hashnet.url | quote }}
+  HASHNET_ADAPTER_NAME: "hashnet"
+  HASHNET_CHAIN_ID: {{ .Values.adapters.hashnet.chainId | quote }}
+  {{- end }}
+
+  # Alastria Adapter (external URL)
+  {{- if .Values.adapters.alastria.url }}
+  ALASTRIA_ADAPTER_URL: {{ .Values.adapters.alastria.url | quote }}
+  ALASTRIA_ADAPTER_NAME: "alastria"
+  ALASTRIA_CHAIN_ID: {{ .Values.adapters.alastria.chainId | quote }}
+  {{- end }}
+  {{- end }}
+
+  # IED Base URL (for webhook callbacks)
+  {{- if .Values.ingress.enabled }}
+  IED_BASE_URL: {{ printf "http://%s" (index .Values.ingress.hosts 0).host | quote }}
+  {{- else }}
+  IED_BASE_URL: {{ printf "http://%s:8080" (include "dome-ied.fullname" .) | quote }}
+  {{- end }}
+
+  # Logging Configuration
+  LOG_LEVEL: {{ .Values.ied.env.logLevel | quote }}
+  LOG_FORMAT: {{ .Values.ied.env.logFormat | quote }}
+
+  # Timeouts
+  ADAPTER_TIMEOUT_MS: {{ .Values.ied.env.adapterTimeoutMs | quote }}
+  NOTIFICATION_TIMEOUT_MS: {{ .Values.ied.env.notificationTimeoutMs | quote }}
+  HEALTH_CHECK_INTERVAL_MS: {{ .Values.ied.env.healthCheckIntervalMs | quote }}
+
+  # Retry Configuration
+  MAX_RETRY_ATTEMPTS: {{ .Values.ied.env.maxRetryAttempts | quote }}
+  RETRY_DELAY_MS: {{ .Values.ied.env.retryDelayMs | quote }}
+
+  # Replication Configuration
+  REPLICATION_DELAY_MS: {{ .Values.ied.env.replicationDelayMs | quote }}
+  INTERNAL_SUBSCRIPTION_EVENT_TYPES: {{ .Values.ied.env.internalSubscriptionEventTypes | quote }}
+  INTERNAL_SUBSCRIPTION_METADATA: {{ .Values.ied.env.internalSubscriptionMetadata | quote }}

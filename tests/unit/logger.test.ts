@@ -329,7 +329,7 @@ describe('logger', () => {
     describe('logCacheOperation', () => {
       it('should log cache operation', () => {
         const operation = 'get';
-        const key = 'network:hashnet';
+        const key = 'publishedEvents:1';
 
         logCacheOperation(operation, key);
 
@@ -342,7 +342,7 @@ describe('logger', () => {
 
       it('should log cache operation with value', () => {
         const operation = 'set';
-        const key = 'network:hashnet';
+        const key = 'publishedEvents:1';
         const value = '0xabc123';
 
         logCacheOperation(operation, key, value);

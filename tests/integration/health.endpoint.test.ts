@@ -116,9 +116,9 @@ describe('Health and Stats Endpoints', () => {
 
       // Add some events to Redis cache
       const redis = getTestRedisClient();
-      await redis.sAdd('network:hashnet', '0xevent1cached');
-      await redis.sAdd('network:hashnet', '0xevent2cached');
-      await redis.sAdd('network:alastria', '0xevent1cached');
+      await redis.sAdd('publishedEvents:1', '0xevent1cached');
+      await redis.sAdd('publishedEvents:1', '0xevent2cached');
+      await redis.sAdd('publishedEvents:2', '0xevent1cached');
       await redis.sAdd('notifiedEvents', '0xevent1cached');
 
       const response = await request(app)
@@ -183,11 +183,11 @@ describe('Health and Stats Endpoints', () => {
 
       // Add some events to cache
       const redis = getTestRedisClient();
-      await redis.sAdd('network:hashnet', '0xstatsmulti1');
-      await redis.sAdd('network:hashnet', '0xstatsmulti2');
-      await redis.sAdd('network:hashnet', '0xstatsmulti3');
-      await redis.sAdd('network:alastria', '0xstatsmulti1');
-      await redis.sAdd('network:alastria', '0xstatsmulti2');
+      await redis.sAdd('publishedEvents:1', '0xstatsmulti1');
+      await redis.sAdd('publishedEvents:1', '0xstatsmulti2');
+      await redis.sAdd('publishedEvents:1', '0xstatsmulti3');
+      await redis.sAdd('publishedEvents:2', '0xstatsmulti1');
+      await redis.sAdd('publishedEvents:2', '0xstatsmulti2');
       await redis.sAdd('notifiedEvents', '0xstatsmulti1');
       await redis.sAdd('notifiedEvents', '0xstatsmulti2');
 

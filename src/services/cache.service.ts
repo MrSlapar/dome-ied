@@ -3,19 +3,36 @@
  *
  * Redis-based caching service using SET data structures.
  * Tracks:
- * - Events published to each network (network:<name>)
- * - Events notified to Desmos (notifiedEvents)
+ * - Events published to each network: publishedEvents:<chainId>
+ * - Events notified to Desmos: notifiedEvents
+ *
+ * Redis key format follows official specification:
+ * - publishedEvents:<chainId> - Set of global IDs published to this chain
+ * - notifiedEvents - Set of global IDs already notified to Desmos
  */
 
 import { getRedisClient } from '../config/redis.config';
-import { getAdapterNames } from '../config/adapters.config';
+import { getAdapterNames, getChainIdByNetwork } from '../config/adapters.config';
 import { logCacheOperation, logError } from '../utils/logger';
 
 /**
  * Redis key prefixes
+ * Per official spec: publishedEvents:<chainId>
  */
-const NETWORK_PREFIX = 'network:';
+const PUBLISHED_EVENTS_PREFIX = 'publishedEvents:';
 const NOTIFIED_EVENTS_KEY = 'notifiedEvents';
+
+/**
+ * Get Redis key for a network's published events
+ * Converts network name to chainId internally
+ *
+ * @param network - Network name (e.g., "hashnet")
+ * @returns Redis key (e.g., "publishedEvents:1")
+ */
+function getPublishedEventsKey(network: string): string {
+  const chainId = getChainIdByNetwork(network);
+  return `${PUBLISHED_EVENTS_PREFIX}${chainId}`;
+}
 
 /**
  * Mark an event as published to a specific network
@@ -26,7 +43,7 @@ const NOTIFIED_EVENTS_KEY = 'notifiedEvents';
 export async function markEventPublished(network: string, globalId: string): Promise<void> {
   try {
     const redis = getRedisClient();
-    const key = `${NETWORK_PREFIX}${network}`;
+    const key = getPublishedEventsKey(network);
     await redis.sAdd(key, globalId);
     logCacheOperation('SADD', key, globalId);
   } catch (error) {
@@ -45,7 +62,7 @@ export async function markEventPublished(network: string, globalId: string): Pro
 export async function isEventOnNetwork(network: string, globalId: string): Promise<boolean> {
   try {
     const redis = getRedisClient();
-    const key = `${NETWORK_PREFIX}${network}`;
+    const key = getPublishedEventsKey(network);
     const exists = await redis.sIsMember(key, globalId);
     logCacheOperation('SISMEMBER', key, { globalId, exists });
     return exists;
@@ -128,7 +145,7 @@ export async function isEventNotified(globalId: string): Promise<boolean> {
 export async function getNetworkEvents(network: string): Promise<string[]> {
   try {
     const redis = getRedisClient();
-    const key = `${NETWORK_PREFIX}${network}`;
+    const key = getPublishedEventsKey(network);
     const events = await redis.sMembers(key);
     logCacheOperation('SMEMBERS', key, { count: events.length });
     return events;
@@ -158,7 +175,7 @@ export async function getNotifiedEvents(): Promise<string[]> {
 /**
  * Get cache statistics
  *
- * @returns Cache statistics object
+ * @returns Cache statistics object with network names as keys
  */
 export async function getCacheStats(): Promise<{
   networks: Record<string, number>;
@@ -172,9 +189,9 @@ export async function getCacheStats(): Promise<{
     let total = 0;
 
     for (const network of networks) {
-      const key = `${NETWORK_PREFIX}${network}`;
+      const key = getPublishedEventsKey(network);
       const count = await redis.sCard(key);
-      stats[network] = count;
+      stats[network] = count;  // Use network name for API response (human readable)
       total += count;
     }
 
@@ -199,9 +216,9 @@ export async function clearCache(): Promise<void> {
     const redis = getRedisClient();
     const networks = getAdapterNames();
 
-    // Delete network sets
+    // Delete network sets (using publishedEvents:<chainId> keys)
     for (const network of networks) {
-      const key = `${NETWORK_PREFIX}${network}`;
+      const key = getPublishedEventsKey(network);
       await redis.del(key);
     }
 
@@ -224,7 +241,7 @@ export async function clearCache(): Promise<void> {
 export async function removeEventFromNetwork(network: string, globalId: string): Promise<void> {
   try {
     const redis = getRedisClient();
-    const key = `${NETWORK_PREFIX}${network}`;
+    const key = getPublishedEventsKey(network);
     await redis.sRem(key, globalId);
     logCacheOperation('SREM', key, globalId);
   } catch (error) {

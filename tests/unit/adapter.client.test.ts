@@ -17,6 +17,7 @@ describe('AdapterClient', () => {
   const testConfig: AdapterConfig = {
     name: 'test-adapter',
     url: 'http://localhost:8081',
+    chainId: 'test-chain-1',
     healthEndpoint: '/health',
     publishEndpoint: '/api/v1/publishEvent',
     subscribeEndpoint: '/api/v1/subscribe',
@@ -248,6 +249,7 @@ describe('adapterPool', () => {
       const config: AdapterConfig = {
         name: 'test-adapter-1',
         url: 'http://localhost:9001',
+        chainId: 'test-chain-1',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v1/publishEvent',
         subscribeEndpoint: '/api/v1/subscribe',
@@ -269,6 +271,7 @@ describe('adapterPool', () => {
       const config1: AdapterConfig = {
         name: 'test-adapter-2',
         url: 'http://localhost:9002',
+        chainId: 'test-chain-2',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v1/publishEvent',
         subscribeEndpoint: '/api/v1/subscribe',
@@ -278,6 +281,7 @@ describe('adapterPool', () => {
       const config2: AdapterConfig = {
         name: 'test-adapter-3',
         url: 'http://localhost:9003',
+        chainId: 'test-chain-3',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v2/publishEvent',
         subscribeEndpoint: '/api/v2/subscribe',
@@ -298,6 +302,7 @@ describe('adapterPool', () => {
       const config: AdapterConfig = {
         name: 'test-adapter-4',
         url: 'http://localhost:9004',
+        chainId: 'test-chain-4',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v1/publishEvent',
         subscribeEndpoint: '/api/v1/subscribe',
@@ -321,6 +326,7 @@ describe('adapterPool', () => {
       const config: AdapterConfig = {
         name: 'test-adapter-5',
         url: 'http://localhost:9005',
+        chainId: 'test-chain-5',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v1/publishEvent',
         subscribeEndpoint: '/api/v1/subscribe',
@@ -357,6 +363,7 @@ describe('adapterPool', () => {
       const config: AdapterConfig = {
         name: 'test-adapter-6',
         url: 'http://localhost:9006',
+        chainId: 'test-chain-6',
         healthEndpoint: '/health',
         publishEndpoint: '/api/v1/publishEvent',
         subscribeEndpoint: '/api/v1/subscribe',

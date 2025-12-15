@@ -75,7 +75,7 @@ describe('POST /internal/eventNotification/:network', () => {
 
       // Verify event is marked on hashnet
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
       expect(hashnetEvents).toContain('0xnotification123');
     });
 
@@ -93,8 +93,8 @@ describe('POST /internal/eventNotification/:network', () => {
 
       // Verify event is replicated to alastria
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       expect(hashnetEvents).toContain('0xnotification123');
       expect(alastriaEvents).toContain('0xnotification123');
@@ -105,8 +105,8 @@ describe('POST /internal/eventNotification/:network', () => {
 
       // Pre-populate both networks
       const redis = getTestRedisClient();
-      await redis.sAdd('network:hashnet', '0xnotification123');
-      await redis.sAdd('network:alastria', '0xnotification123');
+      await redis.sAdd('publishedEvents:1', '0xnotification123');
+      await redis.sAdd('publishedEvents:2', '0xnotification123');
 
       await request(app)
         .post('/internal/eventNotification/hashnet')
@@ -117,8 +117,8 @@ describe('POST /internal/eventNotification/:network', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Verify counts haven't changed (no duplicate replication)
-      const hashnetCount = await redis.sCard('network:hashnet');
-      const alastriaCount = await redis.sCard('network:alastria');
+      const hashnetCount = await redis.sCard('publishedEvents:1');
+      const alastriaCount = await redis.sCard('publishedEvents:2');
 
       expect(hashnetCount).toBe(1);
       expect(alastriaCount).toBe(1);
@@ -153,8 +153,8 @@ describe('POST /internal/eventNotification/:network', () => {
       await new Promise((resolve) => setTimeout(resolve, 400));
 
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       // Both networks should have both events
       expect(hashnetEvents).toContain('0xevent1');
@@ -219,11 +219,11 @@ describe('POST /internal/eventNotification/:network', () => {
 
       // Source network should still be marked
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
       expect(hashnetEvents).toContain('0xnotification123');
 
       // Target network should not have the event (replication failed)
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
       expect(alastriaEvents).not.toContain('0xnotification123');
     });
 
@@ -241,11 +241,11 @@ describe('POST /internal/eventNotification/:network', () => {
       const redis = getTestRedisClient();
 
       // hashnet (source) should be marked
-      const hashnetEvents = await redis.sMembers('network:hashnet');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
       expect(hashnetEvents).toContain('0xnotification123');
 
       // alastria should have the event (it's healthy in partialFailure)
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
       expect(alastriaEvents).toContain('0xnotification123');
     });
   });
@@ -280,8 +280,8 @@ describe('POST /internal/eventNotification/:network', () => {
       await new Promise((resolve) => setTimeout(resolve, 400));
 
       const redis = getTestRedisClient();
-      const hashnetEvents = await redis.sMembers('network:hashnet');
-      const alastriaEvents = await redis.sMembers('network:alastria');
+      const hashnetEvents = await redis.sMembers('publishedEvents:1');
+      const alastriaEvents = await redis.sMembers('publishedEvents:2');
 
       // All events should be on all networks
       expect(hashnetEvents).toContain('0xconcurrent1');
