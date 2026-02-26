@@ -7,7 +7,7 @@ ied:
   replicaCount: 2
 
   image:
-    repository: your-registry.io/dome-ied
+    repository: ghcr.io/mrslapar/dome-ied
     pullPolicy: Always
     tag: "1.0.0"  # Use specific version tag
 
