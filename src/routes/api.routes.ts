@@ -171,11 +171,25 @@ import {
   handleEventNotification,
   handleDesmosEventNotification,
 } from '../controllers/subscribe.controller';
-import { healthCheck, stats, adapterSubscriptions } from '../controllers/health.controller';
+import { livez, healthCheck, stats, adapterSubscriptions } from '../controllers/health.controller';
 import { validatePublishEvent, validateSubscribe } from '../middleware/validation.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
 
 const router = Router();
+
+/**
+ * @swagger
+ * /livez:
+ *   get:
+ *     summary: Liveness probe
+ *     description: Returns 200 if the IED process is alive. Does not check adapter health.
+ *     tags:
+ *       - Monitoring
+ *     responses:
+ *       200:
+ *         description: Process is alive
+ */
+router.get('/livez', livez);
 
 /**
  * @swagger

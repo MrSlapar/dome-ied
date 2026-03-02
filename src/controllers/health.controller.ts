@@ -12,9 +12,21 @@ import { getSubscriptionCount } from '../services/subscription.service';
 import { logError } from '../utils/logger';
 
 /**
+ * GET /livez
+ *
+ * Liveness probe endpoint. Returns 200 if the process is alive.
+ * Does NOT check adapter health - prevents K8s from restarting
+ * the pod when an adapter is temporarily unavailable.
+ */
+export function livez(_req: Request, res: Response): void {
+  res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
+}
+
+/**
  * GET /health
  *
  * Health check endpoint with dependency status.
+ * Used as readiness probe - returns 503 if any dependency is unhealthy.
  */
 export async function healthCheck(_req: Request, res: Response): Promise<void> {
   try {
