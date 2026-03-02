@@ -61,7 +61,7 @@ describe('Health and Stats Endpoints', () => {
 
       const response = await request(app)
         .get('/health')
-        .expect(503); // 503 when degraded
+        .expect(200); // 200 even when degraded - pod stays alive, adapter issues don't kill the process
 
       expect(response.body.status).toBe('DEGRADED');
       expect(response.body.redis).toBe('UP');
@@ -79,7 +79,7 @@ describe('Health and Stats Endpoints', () => {
 
       const response = await request(app)
         .get('/health')
-        .expect(503); // 503 when degraded
+        .expect(200); // 200 even when degraded - only Redis DOWN triggers 503
 
       expect(response.body.status).toBe('DEGRADED');
       expect(response.body.redis).toBe('UP');

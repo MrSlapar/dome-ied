@@ -38,9 +38,8 @@ export async function healthCheck(_req: Request, res: Response): Promise<void> {
 
     // Determine overall status
     const allAdaptersHealthy = Object.values(adapterHealth).every((status) => status);
-    const overallHealthy = redisHealthy && allAdaptersHealthy;
 
-    const status = overallHealthy ? 'UP' : 'DEGRADED';
+    const status = !redisHealthy ? 'DOWN' : allAdaptersHealthy ? 'UP' : 'DEGRADED';
 
     const response = {
       status,
@@ -54,7 +53,9 @@ export async function healthCheck(_req: Request, res: Response): Promise<void> {
       subscriptions: getSubscriptionCount(),
     };
 
-    const statusCode = overallHealthy ? 200 : 503;
+    // Return 503 only when Redis is down (critical dependency)
+    // Return 200 for UP and DEGRADED - pod should stay alive even if adapters are unreachable
+    const statusCode = redisHealthy ? 200 : 503;
 
     res.status(statusCode).json(response);
   } catch (error) {
